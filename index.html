@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="SimMIA: a robust text-only black-box membership inference framework for auditing LLM training data">
+  <meta name="keywords" content="MIA, Blackbox">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Membership Inference on LLMs in the Wild</title>
+
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=G-PYVRSFMDRL"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+
+    gtag('js', new Date());
+
+    gtag('config', 'G-PYVRSFMDRL');
+  </script> -->
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet">
+
+  <link rel="stylesheet" href="./static/css/bulma.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="./static/css/bulma-slider.min.css">
+  <link rel="stylesheet" href="./static/css/fontawesome.all.min.css">
+  <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+  <link rel="stylesheet" href="./static/css/index.css">
+  <link rel="icon" href="./static/images/favicon.svg">
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script defer src="./static/js/fontawesome.all.min.js"></script>
+  <script src="./static/js/bulma-carousel.min.js"></script>
+  <script src="./static/js/bulma-slider.min.js"></script>
+  <script defer src="./static/js/index.js"></script>
+</head>
+<body>
+
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">Membership Inference on LLMs in the Wild</h1>
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">
+              <a href="https://openreview.net/profile?id=%7EJiatong_Yi1">Jiatong YI*</a>,
+            <span class="author-block">
+              <a href="https://scholar.google.com/citations?user=bojU9LoAAAAJ&hl=en">Yanyang Li*</a>,
+            </span>
+          </div>
+
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">The Chinese University of Hong Kong</span><br>
+            <span class="author-block"><small><sup>*</sup> Equal Contribution&nbsp;</small></span>
+          </div>
+
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <!-- PDF Link. -->
+              <span class="link-block">
+                <a href="https://arxiv.org/pdf/2601.11314"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fas fa-file-pdf"></i>
+                  </span>
+                  <span>Paper</span>
+                </a>
+              </span>
+              <span class="link-block">
+                <a href="https://arxiv.org/abs/2601.11314"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="ai ai-arxiv"></i>
+                  </span>
+                  <span>arXiv</span>
+                </a>
+              </span>
+              <!-- Code Link. -->
+              <span class="link-block">
+                <a href="https://github.com/simmia2026/SimMIA"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fab fa-github"></i>
+                  </span>
+                  <span>Code</span>
+                  </a>
+              </span>
+              <span class="link-block">
+                <a href="https://huggingface.co/datasets/SimMIA/WikiMIA-25"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                    <i class="fas fa-database"></i>
+                  </span>
+                  <span>Dataset</span>
+                </a>
+              </span>
+              
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" >
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column">
+        <h2 class="title is-3" style="margin-top: -1em"><span class="emoji">🗒️</span>Abstract</h2>
+        <div class="content has-text-justified">
+          <p>
+            Membership Inference Attacks (MIAs) act as a crucial auditing tool for the opaque training data of Large Language Models (LLMs). However, existing techniques predominantly rely on inaccessible model internals (e.g., logits) or suffer from poor generalization across domains in <span class="emphasized-word">strict black-box</span> settings where only generated text is available. In this work, we propose <strong></strong>SimMIA</strong>, a robust MIA framework tailored for this <span class="emphasized-word">text-only</span> regime by leveraging an advanced <span class="emphasized-word">sampling strategy</span> and <span class="emphasized-word">scoring mechanism</span>. Furthermore, we present <strong>WikiMIA-25</strong>, a new benchmark curated to evaluate MIA performance on modern proprietary LLMs. Experiments demonstrate that SimMIA achieves state-of-the-art results in the black-box setting, rivaling baselines that exploit internal model information.
+          </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" >
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column">
+        <h2 class="title is-3" style="margin-top: -1em">How SimMIA Works<span class="emoji">❓</span></h2>
+        <div class="content has-text-justified">
+          <p>SimMIA advances existing black-box MIAs on LLMs by:</p>
+          <ul>
+            <li>
+              <strong>Word-by-word sampling:</strong> SimMIA samples the immediate <span class="emphasized-word">next word</span> for every possible prefix rather than a complete continuation for a fixed-length prefix.
+            </li>
+            <li>
+              <strong>Semantic Scoring:</strong> SimMIA relies on <span class="emphasized-word">soft</span> embedding-based similarity to score each word rather than surface-form exact matching.
+            </li>
+            <li>
+              <strong>Relative Aggregation:</strong> SimMIA computes the <span class="emphasized-word">relative ratio</span> between scores perturbed by non-members and unperturbed scores.
+            </li>
+          </ul>
+        </div>
+
+        <figure class="two-figures with-divider" id="fig-compare">
+          <div class="figure-row">
+            <div class="subfigure">
+              <img src="./static/images/samia.png" alt="SaMIA overview">
+              <div class="subcaption">(a) SaMIA</div>
+            </div>
+        
+            <div class="divider" aria-hidden="true"></div>
+        
+            <div class="subfigure">
+              <img src="./static/images/simmia.png" alt="SimMIA overview">
+              <div class="subcaption">(b) SimMIA</div>
+            </div>
+          </div>
+        
+          <figcaption class="figure-caption">
+            <strong>Figure 1:</strong> Comparison between SaMIA, a representative black-box MIA baseline, and our proposed method.
+            Given a text <em>x</em>:
+            (a) <strong>SaMIA</strong> samples multiple candidate continuations conditioned on the <u>underlined</u> prefix, computes ROUGE-N scores between each candidate and <em>x</em>, and aggregates these scores to determine membership;
+            (b) <strong>SimMIA</strong> performs word-by-word sampling for every prefix, computes word-level scores using word embeddings, and aggregates these scores to derive the final membership prediction.
+            <span class="legend-square blue"></span> denotes the empirical frequency of the corresponding word, while
+            <span class="legend-square green"></span> is the empirical frequency if additionally conditioning on non-member data.
+          </figcaption>
+        </figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" >
+  <div class="container is-max-desktop">
+    <div class="columns is-centered">
+      <div class="column">
+        <h2 class="title is-3 has-text-centered" style="margin-top: -1em">
+          Main Results<span class="emoji">🔝</span>
+        </h2>
+        <p>We compare SimMIA with ten baselines in three benchmarks:</p>
+        <div class="content" style="max-width: 900px; margin: 0 auto 1.25rem auto;">
+          <ul>
+            <li>
+              <strong>WikiMIA:</strong> SimMIA achieves state-of-the-art black-box MIA, improving AUC by +16.6 over prior black-box baselines and even surpassing the best gray-box method on some models (e.g., OPT-6.7B)<span class="emoji">🥇</span>.
+            </li>
+            <li>
+              <strong>MIMIR:</strong> SimMIA achieves +14.9 AUC over previous SOTA black-box performance, trailing the best gray-box methods by only 3.4 AUC points on average.
+            </li>
+            <li>
+              <strong>WikiMIA-25:</strong> SimMIA generalizes to both legacy and latest (including proprietary) LLMs<span class="emoji">🚀</span>, outperforming the best black-box baseline by +21.7 AUC and +25.8 TPR@5%FPR.
+            </li>
+          </ul>
+        </div>
+
+        <div class="carousel-container results-carousel">
+          <button class="carousel-button prev-results" type="button" aria-label="Previous result">&#8249;</button>
+          <button class="carousel-button next-results" type="button" aria-label="Next result">&#8250;</button>
+
+          <div class="carousel-track-results">
+            <!-- Slide 1 -->
+            <div class="carousel-slide">
+              <div class="results-scroll">
+                <figure class="has-text-centered">
+                  <figcaption class="title is-5" style="margin-bottom: 0.75rem;">
+                    Performance on WikiMIA
+                  </figcaption>
+                  <img class="result-image" src="./static/images/results/WikiMIA-results.png" alt="WikiMIA results">
+                </figure>
+              </div>
+            </div>
+
+            <!-- Slide 2 -->
+            <div class="carousel-slide">
+              <div class="results-scroll">
+                <figure class="has-text-centered">
+                  <figcaption class="title is-5" style="margin-bottom: 0.75rem;">
+                    Performance on MIMIR
+                  </figcaption>
+                  <img class="result-image" src="./static/images/results/MIMIR-results.png" alt="MIMIR results">
+                </figure>
+              </div>
+            </div>
+
+            <!-- Slide 3 (REFERENCE HEIGHT: WikiMIA-25) -->
+            <div class="carousel-slide results-height-ref">
+              <div class="results-scroll">
+                <figure class="has-text-centered">
+                  <figcaption class="title is-5" style="margin-bottom: 0.75rem;">
+                    Performance on WikiMIA-25
+                  </figcaption>
+                  <img class="result-image" src="./static/images/results/WikiMIA-25-results.png" alt="WikiMIA-25 results">
+                </figure>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- /Results carousel -->
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* =========================================================
+     Carousel (VG / VOD) - base
+     ========================================================= */
+  
+  .carousel-container {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .carousel-track-vg,
+  .carousel-track-vod {
+    display: flex;
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  .carousel-track-vg img,
+  .carousel-track-vod img {
+    width: 100%;
+    flex-shrink: 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Shared carousel buttons */
+  .carousel-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.7);
+    border: none;
+    border-radius: 10px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1em;
+    cursor: pointer;
+    opacity: 0.8;
+    color: #333;
+    z-index: 5;
+  
+    transition:
+      opacity 0.2s ease-in-out,
+      background-color 0.2s ease-in-out,
+      transform 0.1s ease-in-out;
+  
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+  }
+  
+  .carousel-button:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.9);
+    transform: translateY(-50%) scale(1.05);
+  }
+  
+  .carousel-button svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+  
+  /* Button positions */
+  .prev-vg,
+  .prev-vod,
+  .prev-results {
+    left: 15px;
+  }
+  
+  .next-vg,
+  .next-vod,
+  .next-results {
+    right: 15px;
+  }
+  
+  
+  /* =========================================================
+     Two panels as ONE figure (with optional subcaptions)
+     Recommended HTML structure:
+     <figure class="two-figures with-divider">
+       <div class="figure-row">
+         <div class="subfigure"> <img> <div class="subcaption">...</div> </div>
+         <div class="divider"></div>
+         <div class="subfigure"> <img> <div class="subcaption">...</div> </div>
+       </div>
+       <figcaption class="figure-caption">...</figcaption>
+     </figure>
+     ========================================================= */
+  
+  /* Layout container (outer figure) */
+  figure.two-figures {
+    margin: 0;                 /* keep tight; adjust if you want more spacing */
+  }
+  
+  /* Row that holds the two subfigures + divider */
+  figure.two-figures .figure-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr; /* left | divider | right */
+    gap: 24px;                            /* space around divider */
+    align-items: stretch;
+  }
+  
+  /* Each panel */
+  figure.two-figures .subfigure {
+    margin: 0;
+    height: clamp(180px, 22vw, 320px); /* matches your prior same-height boxes */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Image sizing inside each panel */
+  figure.two-figures .subfigure img {
+    max-height: 100%;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    display: block;
+  }
+  
+  /* Vertical divider */
+  figure.two-figures.with-divider .divider {
+    width: 1px;
+    background: #ddd;
+    align-self: stretch;
+  }
+  
+  /* Optional subcaptions (tight, LaTeX-like) */
+  figure.two-figures .subcaption {
+    margin-top: 6px;
+    font-size: 0.95rem;
+    line-height: 1.1;
+    text-align: center;
+  }
+  
+  /* Single caption for both panels (tight spacing) */
+  figure.two-figures .figure-caption,
+  figure.two-figures figcaption {
+    margin-top: 6px;     /* "closer the better" */
+    font-size: 0.95rem;
+    line-height: 1.25;
+  }
+  
+  /* Legend squares matching your LaTeX colors */
+  .legend-square {
+    display: inline-block;
+    width: 0.8em;
+    height: 0.8em;
+    vertical-align: -0.1em;
+    margin: 0 0.25em;
+    border-radius: 2px;
+  }
+  .legend-square.blue  { background: rgb(123, 201, 240); }
+  .legend-square.green { background: rgb(102, 164, 66); }
+  
+  /* Mobile: stack panels, remove divider */
+  @media (max-width: 900px) {
+    figure.two-figures .figure-row {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+  
+    figure.two-figures.with-divider .divider {
+      display: none;
+    }
+  
+    figure.two-figures .subfigure {
+      height: auto; /* allow natural height on small screens */
+    }
+  
+    figure.two-figures .subfigure img {
+      width: 100%;
+      height: auto;
+      max-height: none;
+    }
+  }
+  /* Left-align the caption text (and keep it close) */
+  figure.two-figures figcaption,
+  figure.two-figures .figure-caption {
+    margin-top: 6px;
+    text-align: left;
+  }
+
+  /* Add "Figure 1." prefix (for this figure) */
+  figure.two-figures.numbered#fig-1 figcaption::before,
+  figure.two-figures.numbered#fig-1 .figure-caption::before {
+    content: "Figure 1. ";
+    font-weight: 600;
+  }
+    
+  
+  /* =========================================================
+     Results carousel (fixed viewport height, per-slide scrolling)
+     ========================================================= */
+  
+  .carousel-container.results-carousel {
+    position: relative;
+    overflow: hidden; /* hide non-active slides */
+    /* height is set by JS to WikiMIA-25 slide height */
+  }
+  
+  .carousel-track-results {
+    display: flex;
+    transition: transform 0.35s ease-in-out;
+    will-change: transform;
+  }
+  
+  .carousel-track-results .carousel-slide {
+    flex: 0 0 100%;
+    min-width: 0;
+    /* height is set by JS to match the viewport height */
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+  }
+  
+  /* Per-slide vertical scroll area */
+  .results-scroll {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    padding-right: 8px;
+    box-sizing: border-box;
+  }
+  
+  /* Center figure within scroll area */
+  .results-scroll figure {
+    width: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+  }
+  
+  /* Results image */
+  .result-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  .emphasized-word {
+    font-weight: 700;
+    font-size: 1.1em;
+    color: #0a66c3;
+  }
+
+</style>
+  
+
+<section class="section" id="Citation">
+  <div class="container is-max-desktop content">
+    <h2 class="title"><span class="emoji">🌟 </span>Citation</h2>
+    <pre><code>
+      @misc{yi2026membershipinferencellmswild,
+        title={Membership Inference on LLMs in the Wild}, 
+        author={Jiatong Yi and Yanyang Li},
+        year={2026},
+        eprint={2601.11314},
+        archivePrefix={arXiv},
+        primaryClass={cs.CL},
+        url={https://arxiv.org/abs/2601.11314}, 
+      }
+    </code></pre>
+  </div>
+</section>
+
+
+<footer class="footer">
+  <div class="container">
+    <div class="columns is-centered">
+      <div class="column is-8">
+        <div class="content has-text-centered">
+          <p>
+            Site code adapted from
+            <a href="https://github.com/nerfies/nerfies.github.io">Nerfies</a>
+            (modified) and distributed under the
+            <a rel="license" href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>
+            license.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+</body>
+</html>
